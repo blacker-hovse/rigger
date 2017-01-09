@@ -1,6 +1,6 @@
 <?
-include(__DIR__ . '/../lib/include.php');
-include(__DIR__ . '/include.php');
+include(__DIR__ . '/../../lib/include.php');
+include(__DIR__ . '/../include.php');
 
 $pdo = rigger_init('rigger.db');
 ?><!DOCTYPE html>
