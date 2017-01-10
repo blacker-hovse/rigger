@@ -7,7 +7,8 @@ function rigger_init($db) {
 		$pdo->exec(<<<EOF
 CREATE TABLE `elections` (
 	`id` integer PRIMARY KEY ASC,
-	`name` varchar(64) NOT NULL,
+	`name` varchar(255) NOT NULL,
+	`writeins` int NOT NULL,
 	`created` datetime NOT NULL,
 	`closed` datetime
 )
@@ -26,7 +27,8 @@ EOF
 		$pdo->exec(<<<EOF
 CREATE TABLE `votes` (
 	`candidate` int NOT NULL,
-	`user` varchar(64) NOT NULL
+	`user` varchar(64) NOT NULL,
+	`rank` int NOT NULL
 )
 EOF
 			);
