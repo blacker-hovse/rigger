@@ -122,6 +122,43 @@ EOF;
 			<p class="text-center">
 				<a class="btn btn-lg" href="?action=edit">Create Poll</a>
 			</p>
+			<ul>
+
+EOF;
+
+	$result = $pdo->prepare(<<<EOF
+SELECT `elections`.`name` AS `name`,
+	`elections`.`created` AS `created`,
+	`elections`.`closed` AS `closed`,
+	COUNT(DISTINCT `votes`.`user`) + COUNT(DISTINCT `writeins`.`user`) AS `ballots`
+FROM `elections`
+	LEFT JOIN `candidates`
+		ON `elections`.`id` = `candidates`.`election`
+	LEFT JOIN `votes`
+		ON `candidates`.`id` = `votes`.`candidate`
+	LEFT JOIN `writeins`
+		ON `elections`.`id` = `writeins`.`election`
+EOF
+		);
+
+	$result->execute();
+
+	while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+		$title = htmlentities($row['name'], NULL, 'UTF-8');
+		$closed = $row['closed'] ? 'Closed ' . $row['closed'] : 'Accepting responses';
+
+		echo <<<EOF
+				<li>
+					<h4>$title</h4>
+					<p>$row[ballots] votes&nbsp;&nbsp;&nbsp;&nbsp;&middot;&nbsp;&nbsp;&nbsp;&nbsp;Created $row[created]&nbsp;&nbsp;&nbsp;&nbsp;&middot;&nbsp;&nbsp;&nbsp;&nbsp;$closed</p>
+					<p></p>
+				</li>
+
+EOF;
+	}
+
+	echo <<<EOF
+			</ul>
 
 EOF;
 }

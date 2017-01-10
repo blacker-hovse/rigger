@@ -37,7 +37,8 @@ EOF
 CREATE TABLE `writeins` (
 	`election` int NOT NULL,
 	`name` varchar(255) NOT NULL,
-	`user` varchar(64) NOT NULL
+	`user` varchar(64) NOT NULL,
+	`rank` int NOT NULL
 )
 EOF
 			);
