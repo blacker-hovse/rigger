@@ -18,18 +18,22 @@ if (@$_POST['action'] == 'vote') {
 	$writein_ranks = array_filter($_POST['writein-ranks']);
 	$writein_names = array_filter($_POST['writein-names']);
 	$writeins = array_intersect_key($writein_ranks, $writein_names);
+	$error = '';
 
-	array_walk($writeins, function(&$writein, $election, $names) {
-		$writein = array(
-			$writein,
-			$names[$election]
-		);
-	}, $writein_names);
+	if (max(array_count_values(array_merge(array_values($candidates), array_values($writein_ranks)))) >= 2) {
+		$error = 'Two candidates may not be given the same rank.';
+	} else {
+		array_walk($writeins, function(&$writein, $election, $names) {
+			$writein = array(
+				$writein,
+				$names[$election]
+			);
+		}, $writein_names);
 
-	$ranked = rigger_intval($candidates);
-	$written = rigger_intval($writeins);
+		$ranked = rigger_intval($candidates);
+		$written = rigger_intval($writeins);
 
-	$result = $pdo->prepare(<<<EOF
+		$result = $pdo->prepare(<<<EOF
 SELECT `elections`.`name` AS `name`
 FROM `elections`
 	INNER JOIN `candidates`
@@ -41,24 +45,24 @@ FROM `elections`
 WHERE `elections`.`closed` IS NOT NULL
 	AND `elections`.`id` IN $written
 EOF
-		);
+			);
 
-	$result->execute();
-	$closed = $result->fetchAll(PDO::FETCH_COLUMN);
-	$error = '';
+		$result->execute();
+		$closed = $result->fetchAll(PDO::FETCH_COLUMN);
 
-	switch (count($closed)) {
-		case 0:
-			break;
-		case 1:
-			$error = 'Poll <b>' . htmlentities($closed[0], NULL, 'UTF-8') . '</b> has already closed.';
-			break;
-		case 2:
-			$error = 'Polls <b>' . rigger_escape($closed[0]) . '</b> and <b>' . rigger_escape($closed[1]) . '</b> have already closed.';
-			break;
-		default:
-			$error = 'Polls <b>' . implode('</b>, <b>', array_map('rigger_escape', array_slice($closed, 0, -1))) . '</b>, and <b>' . $closed[count($closed) - 1] . '</b> have already closed.';
-			break;
+		switch (count($closed)) {
+			case 0:
+				break;
+			case 1:
+				$error = 'Poll <b>' . htmlentities($closed[0], NULL, 'UTF-8') . '</b> has already closed.';
+				break;
+			case 2:
+				$error = 'Polls <b>' . rigger_escape($closed[0]) . '</b> and <b>' . rigger_escape($closed[1]) . '</b> have already closed.';
+				break;
+			default:
+				$error = 'Polls <b>' . implode('</b>, <b>', array_map('rigger_escape', array_slice($closed, 0, -1))) . '</b>, and <b>' . $closed[count($closed) - 1] . '</b> have already closed.';
+				break;
+		}
 	}
 
 	if (!$error) {
@@ -126,11 +130,6 @@ EOF;
 
 		$result = $pdo->prepare($statement);
 		$result->execute($parameters);
-
-		print_r($statement);
-		print_r($parameters);
-		print_r($pdo->errorInfo());
-
 		$votes = $writeins;
 
 		array_walk($votes, function(&$writein, $election) {
@@ -164,10 +163,11 @@ EOF;
 
 		$result = $pdo->prepare($statement);
 		$result->execute($parameters);
+	} else {
+		echo <<<EOF
+			<div class="error">$error</div>
 
-		print_r($statement);
-		print_r($parameters);
-		print_r($pdo->errorInfo());
+EOF;
 	}
 }
 
