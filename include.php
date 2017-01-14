@@ -1,4 +1,8 @@
 <?
+function rigger_escape($str) {
+	return htmlentities($str, NULL, 'UTF-8');
+}
+
 function rigger_init($db) {
 	$create = !file_exists($db);
 	$pdo = new PDO('sqlite:' . $db);
@@ -45,6 +49,10 @@ EOF
 	}
 
 	return $pdo;
+}
+
+function rigger_intval($arr) {
+	return "('" . implode("', '", array_map('intval', array_keys($arr))) . "')";
 }
 
 function rigger_subtitle() {
