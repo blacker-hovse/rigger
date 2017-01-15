@@ -56,7 +56,7 @@ EOF
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 <?
-print_head('Rigger');
+print_head('Vote Rigger');
 ?>		<script type="text/javascript" src="/lib/js/jquery.min.js"></script>
 		<script type="text/javascript">// <![CDATA[
 			var e = 0;
@@ -85,7 +85,7 @@ print_head('Rigger');
 	</head>
 	<body>
 		<div id="main">
-			<h1>Rigger</h1>
+			<h1>Vote Rigger</h1>
 <?
 $subtitle = rigger_subtitle();
 
@@ -122,22 +122,37 @@ EOF;
 			<p class="text-center">
 				<a class="btn btn-lg" href="?action=edit">Create Poll</a>
 			</p>
-			<ul>
+			<ul class="list-group">
 
 EOF;
 
 	$result = $pdo->prepare(<<<EOF
-SELECT `elections`.`name` AS `name`,
-	`elections`.`created` AS `created`,
-	`elections`.`closed` AS `closed`,
-	COUNT(DISTINCT `votes`.`user`) + COUNT(DISTINCT `writeins`.`user`) AS `ballots`
-FROM `elections`
-	LEFT JOIN `candidates`
-		ON `elections`.`id` = `candidates`.`election`
-	LEFT JOIN `votes`
-		ON `candidates`.`id` = `votes`.`candidate`
-	LEFT JOIN `writeins`
-		ON `elections`.`id` = `writeins`.`election`
+SELECT `id`,
+	`name`,
+	`created`,
+	`closed`,
+	COUNT(DISTINCT `user`) AS `ballots`
+FROM (
+	SELECT `elections`.`id` AS `id`,
+		`elections`.`name` AS `name`,
+		`elections`.`created` AS `created`,
+		`elections`.`closed` AS `closed`,
+		`votes`.`user`
+	FROM `elections`
+		LEFT JOIN `candidates`
+			ON `elections`.`id` = `candidates`.`election`
+		LEFT JOIN `votes`
+			ON `candidates`.`id` = `votes`.`candidate`
+	UNION SELECT `elections`.`id` AS `id`,
+		`elections`.`name` AS `name`,
+		`elections`.`created` AS `created`,
+		`elections`.`closed` AS `closed`,
+		`writeins`.`user`
+	FROM `elections`
+		LEFT JOIN `writeins`
+			ON `elections`.`id` = `writeins`.`election`
+)
+GROUP BY `id`
 EOF
 		);
 
@@ -146,12 +161,18 @@ EOF
 	while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
 		$title = htmlentities($row['name'], NULL, 'UTF-8');
 		$closed = $row['closed'] ? 'Closed ' . $row['closed'] : 'Accepting responses';
+		$active = $row['closed'] ? '' : ' active';
 
 		echo <<<EOF
-				<li>
-					<h4>$title</h4>
-					<p>$row[ballots] votes&nbsp;&nbsp;&nbsp;&nbsp;&middot;&nbsp;&nbsp;&nbsp;&nbsp;Created $row[created]&nbsp;&nbsp;&nbsp;&nbsp;&middot;&nbsp;&nbsp;&nbsp;&nbsp;$closed</p>
-					<p></p>
+				<li class="list-group-item">
+					<div class="close toggle$active"></div>
+					<h4>$title <small>$row[ballots] cast</small></h4>
+					<div class="clearfix pull-right">
+						<a class="btn btn-sm" href="?action=count&id=$row[id]">View Results</a>
+						<a class="btn btn-sm" href="?action=burn&id=$row[id]">Destroy Poll</a>
+					</div>
+					<p>Created $row[created]&nbsp;&nbsp;&nbsp;&nbsp;&middot;&nbsp;&nbsp;&nbsp;&nbsp;$closed</p>
+					<div class="clearfix"></div>
 				</li>
 
 EOF;

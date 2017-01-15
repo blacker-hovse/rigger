@@ -8,11 +8,11 @@ $user = $_SERVER['PHP_AUTH_USER'];
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 <?
-print_head('Rigger');
+print_head('Vote Rigger');
 ?>	</head>
 	<body>
 		<div id="main">
-			<h1>Rigger</h1>
+			<h1>Vote Rigger</h1>
 <?
 $candidates = array();
 $writeins = array();
