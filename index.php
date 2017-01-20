@@ -3,7 +3,7 @@ include(__DIR__ . '/../lib/include.php');
 include(__DIR__ . '/include.php');
 
 $pdo = rigger_init('rigger.db');
-$user = $_SERVER['PHP_AUTH_USER'];
+$user = 'woot' //$_SERVER['PHP_AUTH_USER'];
 ?><!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
@@ -23,36 +23,57 @@ if (@$_POST['action'] == 'vote') {
 	$writein_names = array_filter($_POST['writein-names']);
 	$writeins = array_intersect_key($writein_ranks, $writein_names);
 	$error = '';
+	$ranks = array();
+	$ranked = rigger_intval($candidates);
+
+	$result = $pdo->prepare(<<<EOF
+SELECT `candidates`.`id` AS `candidate`,
+	`elections`.`id` AS `election`
+FROM `candidates`
+	INNER JOIN `elections`
+		ON `elections`.`id` = `candidates`.`election`
+WHERE `candidates`.`id` IN $ranked
+EOF
+		);
+
+	$result->execute();
+	$rows = $result->fetchAll(PDO::FETCH_COLUMN | PDO::FETCH_GROUP | PDO::FETCH_UNIQUE);
+
+	foreach ($candidates as $candidate => $rank) {
+		@$ranks[(int) $rows[$candidate]][$rank]++;
+	}
 
 	array_walk($writeins, function(&$writein, $election, $names) {
+		global $ranks;
+
+		@$ranks[(int) $election][$writein]++;
+
 		$writein = array(
 			$writein,
 			$names[$election]
 		);
 	}, $writein_names);
 
-	$ranks = array_merge(array_values($candidates), array_values($writein_ranks));
-	sort($ranks);
+	$elections = rigger_intval($ranks);
 
-	if (max(array_count_values($ranks)) >= 2) {
-		$error = 'Two candidates may not be given the same rank.';
-	} elseif ($ranks and min($ranks) < 1) {
-		$error = 'Invalid ranking.';
-	} else {
-		$ranked = rigger_intval($candidates);
-		$written = rigger_intval($writeins);
+	foreach ($ranks as $rank) {
+		$keys = array_keys($rank);
 
+		if (min($rank) != 1) {
+			$error = 'Ranks must start from 1.';
+		} elseif (max($rank) >= 2) {
+			$error = 'Two candidates may not be given the same rank.';
+		} elseif (count($keys) != max($keys)) {
+			$error = 'Ranks must be consecutive.';
+		}
+	}
+
+	if (!$error) {
 		$result = $pdo->prepare(<<<EOF
 SELECT `elections`.`name` AS `name`
 FROM `elections`
-	INNER JOIN `candidates`
-		ON `elections`.`id` = `candidates`.`election`
-WHERE `elections`.`closed` IS NOT NULL
-	AND `candidates`.`id` IN $ranked
-UNION SELECT `elections`.`name` AS `name`
-FROM `elections`
-WHERE `elections`.`closed` IS NOT NULL
-	AND `elections`.`id` IN $written
+WHERE `elections`.`id` IN $elections
+	AND `elections`.`closed` IS NOT NULL
 EOF
 			);
 
@@ -81,29 +102,14 @@ WHERE `rowid` IN (
 	SELECT `votes`.`rowid` FROM `votes`
 		INNER JOIN `candidates`
 			ON `candidates`.`id` = `votes`.`candidate`
-		INNER JOIN `elections`
-			ON `elections`.`id` = `candidates`.`election`
-	WHERE `elections`.`id` IN (
-		SELECT DISTINCT `election`
-		FROM `candidates`
-		WHERE `id` IN $ranked
-	)
+	WHERE `candidates`.`election` IN $elections
 )
 EOF
 			);
 
 		$pdo->exec(<<<EOF
 DELETE FROM `writeins`
-WHERE `rowid` IN (
-	SELECT `writeins`.`rowid` FROM `writeins`
-		INNER JOIN `elections`
-			ON `elections`.`id` = `writeins`.`election`
-	WHERE `elections`.`id` IN (
-		SELECT DISTINCT `election`
-		FROM `writeins`
-		WHERE `id` IN $written
-	)
-)
+WHERE `writeins`.`election` IN $elections
 EOF
 			);
 
@@ -177,6 +183,11 @@ EOF;
 			$result = $pdo->prepare($statement);
 			$result->execute($parameters);
 		}
+
+		echo <<<EOF
+			<div class="success">Ballot cast successfully.</div>
+
+EOF;
 	} else {
 		echo <<<EOF
 			<div class="error">$error</div>
@@ -191,8 +202,7 @@ echo <<<EOF
 			<h2>$subtitle</h2>
 
 EOF;
-?>			<form action="./" method="post">
-<?
+
 $result = $pdo->prepare(<<<EOF
 SELECT `elections`.`id` AS `id`,
 	`elections`.`name` AS `election`,
@@ -210,6 +220,8 @@ EOF
 $result->execute(array(
 	':user' => $user
 ));
+
+$c = '';
 
 while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
 	$title = htmlentities($row['election'], NULL, 'UTF-8');
@@ -234,7 +246,7 @@ EOF
 	$subrows = $subresult->fetchAll(PDO::FETCH_ASSOC);
 	$max = count($subrows) + 1;
 
-	echo <<<EOF
+	$c .= <<<EOF
 				<fieldset class="poll">
 					<legend>$title</legend>
 
@@ -251,7 +263,7 @@ EOF;
 			$rank = '';
 		}
 
-		echo <<<EOF
+		$c .= <<<EOF
 					<div class="form-control">
 						<div class="input-group">
 							<input id="rank$subrow[id]" name="candidates[$subrow[id]]" type="number" min="1" max="$max"$rank />
@@ -274,7 +286,7 @@ EOF;
 			$rank = '';
 		}
 
-		echo <<<EOF
+		$c .= <<<EOF
 					<div class="form-control">
 						<div class="input-group">
 							<input name="writein-ranks[$row[id]]" type="number" min="1" max="$max"$rank />
@@ -286,19 +298,30 @@ EOF;
 EOF;
 	}
 
-	echo <<<EOF
+	$c .= <<<EOF
 				</fieldset>
 
 EOF;
 }
-?>				<div class="form-control">
+
+if ($c) {
+	echo <<<EOF
+			<form action="./" method="post">
+$c				<div class="form-control">
 					<div class="input-group">
 						<input type="hidden" name="action" value="vote" />
 						<input type="submit" value="Cast Ballots" />
 					</div>
 				</div>
 			</form>
-		</div>
+EOF;
+} else {
+	echo <<<EOF
+			<p>There are no polls currently open.</p>
+
+EOF;
+}
+?>		</div>
 <?
 print_footer(
 	'Copyright &copy; 2017 Will Yu',
