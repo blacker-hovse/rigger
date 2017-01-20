@@ -1,4 +1,8 @@
 <?
+function rigger_closed($closed) {
+	return $closed ? 'Closed ' . $closed : 'Accepting responses';
+}
+
 function rigger_escape($str) {
 	return htmlentities($str, NULL, 'UTF-8');
 }

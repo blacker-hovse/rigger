@@ -4,7 +4,97 @@ include(__DIR__ . '/../include.php');
 
 $pdo = rigger_init('../rigger.db');
 
-if (array_key_exists('title', $_POST)) {
+if (array_key_exists('action', $_POST)) {
+	header('HTTP/1.1 400 Bad Request');
+	header('Status: 400 Bad Request');
+
+	try {
+		$parameters = array(
+			':id' => $_POST['id']
+		);
+
+		switch ($_POST['action']) {
+			case 'burn':
+				$result = $pdo->prepare(<<<EOF
+DELETE FROM `votes`
+WHERE `candidate` IN (
+	SELECT `id`
+	FROM `candidates`
+	WHERE `election` = :id
+)
+EOF
+					);
+
+				$result->execute($parameters);
+
+				$result = $pdo->prepare(<<<EOF
+DELETE FROM `candidates`
+WHERE `election` = :id
+EOF
+					);
+
+				$result->execute($parameters);
+
+				$result = $pdo->prepare(<<<EOF
+DELETE FROM `writeins`
+WHERE `election` = :id
+EOF
+					);
+
+				$result->execute($parameters);
+
+				$result = $pdo->prepare(<<<EOF
+DELETE FROM `elections`
+WHERE `id` = :id
+EOF
+					);
+
+				$result->execute($parameters);
+				break;
+			case 'disable':
+				$result = $pdo->prepare(<<<EOF
+UPDATE `elections`
+SET `closed` = DATETIME('now')
+WHERE `id` = :id
+EOF
+					);
+
+				$result->execute($parameters);
+
+				$result = $pdo->prepare(<<<EOF
+SELECT `closed`
+FROM `elections`
+WHERE `id` = :id
+EOF
+					);
+
+				$result->execute($parameters);
+				$row = $result->fetch(PDO::FETCH_COLUMN);
+				echo rigger_closed($row);
+				break;
+			case 'enable':
+				$result = $pdo->prepare(<<<EOF
+UPDATE `elections`
+SET `closed` = NULL
+WHERE `id` = :id
+EOF
+					);
+
+				$result->execute($parameters);
+				echo rigger_closed(false);
+				break;
+			default:
+				throw new OutOfBoundsException;
+		}
+
+		header('HTTP/1.1 200 OK');
+		header('Status: 200 OK');
+	} catch (OutOfBoundsException $e) {
+		$content = 'Invalid action ' . htmlentities($_POST['action'], NULL, 'UTF-8') . '.';
+	}
+
+	die();
+} elseif (array_key_exists('title', $_POST)) {
 	$candidates = array_filter($_POST['candidates']);
 
 	if ($_POST['title'] and $candidates) {
@@ -80,6 +170,39 @@ print_head('Vote Rigger');
 						e--;
 					}
 				});
+
+				$('#polls').on('click', '.del', function() {
+					if (confirm('Are you sure you want to destroy this poll?')) {
+						var g = $(this).parent().parent();
+
+						$.post('./', {
+							action: 'burn',
+							id: g[0].id.slice(4)
+						}).done(function() {
+							g.remove();
+							$('.error, .success').remove();
+							$('#main h1').after('<div class="success">Successfully destroyed poll.</div>');
+						}).fail(function(e) {
+							$('.error, .success').remove();
+							$('#main h1').after('<div class="success">Action failed: ' + e.responseText + '</div>');
+							$(document).scrollTop(0);
+						});
+					}
+
+					return false;
+				}).on('click', '.toggle', function() {
+					var g = $(this).parent();
+					var f = $(this).hasClass('active');
+
+					$.post('./', {
+						action: f ? 'disable' : 'enable',
+						id: g[0].id.slice(4)
+					}, function(e) {
+						console.log(e);
+						g.find('.toggle').toggleClass('active', !f);
+						g.find('.closed').html(e);
+					});
+				});
 			});
 		// ]]></script>
 	</head>
@@ -122,7 +245,7 @@ EOF;
 			<p class="text-center">
 				<a class="btn btn-lg" href="?action=edit">Create Poll</a>
 			</p>
-			<ul class="list-group">
+			<ul id="polls" class="list-group">
 
 EOF;
 
@@ -160,18 +283,21 @@ EOF
 
 	while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
 		$title = htmlentities($row['name'], NULL, 'UTF-8');
-		$closed = $row['closed'] ? 'Closed ' . $row['closed'] : 'Accepting responses';
+		$closed = rigger_closed($row['closed']);
 		$active = $row['closed'] ? '' : ' active';
 
 		echo <<<EOF
-				<li class="list-group-item">
+				<li id="poll$row[id]" class="list-group-item">
 					<div class="close toggle$active"></div>
 					<h4>$title <small>$row[ballots] cast</small></h4>
 					<div class="clearfix pull-right">
 						<a class="btn btn-sm" href="?action=count&id=$row[id]">View Results</a>
-						<a class="btn btn-sm" href="?action=burn&id=$row[id]">Destroy Poll</a>
+						<a class="btn btn-sm del">Destroy Poll</a>
 					</div>
-					<p>Created $row[created]&nbsp;&nbsp;&nbsp;&nbsp;&middot;&nbsp;&nbsp;&nbsp;&nbsp;$closed</p>
+					<p>
+						<small>Created $row[created]</small>
+						<small class="closed">$closed</small>
+					</p>
 					<div class="clearfix"></div>
 				</li>
 
