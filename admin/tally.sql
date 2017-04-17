@@ -12,7 +12,16 @@ WITH `users` AS (
 )
 SELECT `c1`.`id` AS `c1`,
   `c2`.`id` AS `c2`,
-  COUNT(*) AS `delta`
+  SUM(
+    `c1`.`rank` < `c2`.`rank`
+      OR `c1`.`rank` IS NOT NULL
+      AND `c2`.`rank` IS NULL
+  ) AS `a`,
+  SUM(
+    `c1`.`rank` > `c2`.`rank`
+      OR `c1`.`rank` IS NULL
+      AND `c2`.`rank` IS NOT NULL
+  ) AS `b`
 FROM (
   SELECT `candidates`.`id`,
     `users`.`user`,
@@ -44,10 +53,7 @@ INNER JOIN (
   LEFT JOIN `writeins` ON `users`.`user` = `writeins`.`user`
 ) AS `c2` ON `c1`.`user` = `c2`.`user`
 WHERE `c1`.`id` <> `c2`.`id`
-  AND (
-    `c1`.`rank` < `c2`.`rank`
-      OR `c1`.`rank` IS NOT NULL
-      AND `c2`.`rank` IS NULL
-  )
 GROUP BY `c1`.`id`,
   `c2`.`id`
+ORDER BY `a` DESC,
+  `b`

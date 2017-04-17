@@ -3,6 +3,24 @@ function rigger_closed($closed) {
   return $closed ? 'Closed ' . $closed : 'Accepting responses';
 }
 
+function rigger_dfs($graph, $v, $t, $discovered) {
+  if ($v == $t) {
+    return true;
+  }
+
+  $discovered[$v] = true;
+
+  foreach ($graph[$v] as $w => $i) {
+    if (!array_key_exists($w, $discovered)) {
+      if (rigger_dfs($graph, $w, $t, $discovered)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 function rigger_escape($str) {
   return htmlentities($str, NULL, 'UTF-8');
 }

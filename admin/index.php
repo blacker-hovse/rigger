@@ -219,11 +219,36 @@ EOF;
 
 switch (@$_GET['action']) {
   case 'count':
-    $result = $pdo->prepare(<<<EOF
-SELECT *
-FROM
-EOF
-      );
+    $graph = array();
+    $result = $pdo->prepare(file_get_contents('tally.sql'));
+
+    $result->execute(array(
+      ':id' => $_GET['id']
+    ));
+
+    while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+      $c1 = (int) $row['c1'];
+      $c2 = (int) $row['c2'];
+
+      if (!array_key_exists($c1, $graph)) {
+        $graph[$c1] = array();
+      }
+
+      if (!array_key_exists($c2, $graph)) {
+        $graph[$c2] = array();
+      }
+
+      if (!rigger_dfs($graph, $c2, $c1, array())) {
+        $graph[$c1][$c2] = true;
+      }
+    }
+
+    $candidates = array_keys($graph);
+
+    foreach ($graph as $c1 => $c2) {
+      $candidates = array_diff($candidates, array_keys($c2));
+    }
+
     break;
   case 'edit':
     echo <<<EOF
