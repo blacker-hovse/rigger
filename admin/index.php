@@ -217,8 +217,16 @@ echo <<<EOF
 
 EOF;
 
-if (@$_GET['action'] == 'edit') {
-  echo <<<EOF
+switch (@$_GET['action']) {
+  case 'count':
+    $result = $pdo->prepare(<<<EOF
+SELECT *
+FROM
+EOF
+      );
+    break;
+  case 'edit':
+    echo <<<EOF
       <form id="poll" action="?action=edit" method="post">
         <div class="form-control">
           <label for="title">Title</label>
@@ -240,8 +248,9 @@ if (@$_GET['action'] == 'edit') {
       </form>
 
 EOF;
-} else {
-  echo <<<EOF
+    break;
+  default:
+    echo <<<EOF
       <p class="text-center">
         <a class="btn btn-lg" href="?action=edit">Create Poll</a>
       </p>
@@ -249,7 +258,7 @@ EOF;
 
 EOF;
 
-  $result = $pdo->prepare(<<<EOF
+    $result = $pdo->prepare(<<<EOF
 SELECT `id`,
   `name`,
   `created`,
@@ -262,31 +271,28 @@ FROM (
     `elections`.`closed` AS `closed`,
     `votes`.`user`
   FROM `elections`
-    LEFT JOIN `candidates`
-      ON `elections`.`id` = `candidates`.`election`
-    LEFT JOIN `votes`
-      ON `candidates`.`id` = `votes`.`candidate`
+  LEFT JOIN `candidates` ON `elections`.`id` = `candidates`.`election`
+  LEFT JOIN `votes` ON `candidates`.`id` = `votes`.`candidate`
   UNION SELECT `elections`.`id` AS `id`,
     `elections`.`name` AS `name`,
     `elections`.`created` AS `created`,
     `elections`.`closed` AS `closed`,
     `writeins`.`user`
   FROM `elections`
-    LEFT JOIN `writeins`
-      ON `elections`.`id` = `writeins`.`election`
+  LEFT JOIN `writeins` ON `elections`.`id` = `writeins`.`election`
 )
 GROUP BY `id`
 EOF
-    );
+      );
 
-  $result->execute();
+    $result->execute();
 
-  while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-    $title = htmlentities($row['name'], NULL, 'UTF-8');
-    $closed = rigger_closed($row['closed']);
-    $active = $row['closed'] ? '' : ' active';
+    while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+      $title = htmlentities($row['name'], NULL, 'UTF-8');
+      $closed = rigger_closed($row['closed']);
+      $active = $row['closed'] ? '' : ' active';
 
-    echo <<<EOF
+      echo <<<EOF
         <li id="poll$row[id]" class="list-group-item">
           <div class="close toggle$active"></div>
           <h4>$title <small>$row[ballots] cast</small></h4>
@@ -302,9 +308,9 @@ EOF
         </li>
 
 EOF;
-  }
+    }
 
-  echo <<<EOF
+    echo <<<EOF
       </ul>
 
 EOF;

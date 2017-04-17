@@ -30,8 +30,7 @@ if (@$_POST['action'] == 'vote') {
 SELECT `candidates`.`id` AS `candidate`,
   `elections`.`id` AS `election`
 FROM `candidates`
-  INNER JOIN `elections`
-    ON `elections`.`id` = `candidates`.`election`
+INNER JOIN `elections` ON `elections`.`id` = `candidates`.`election`
 WHERE `candidates`.`id` IN $ranked
 EOF
     );
@@ -100,8 +99,7 @@ EOF
 DELETE FROM `votes`
 WHERE `rowid` IN (
   SELECT `votes`.`rowid` FROM `votes`
-    INNER JOIN `candidates`
-      ON `candidates`.`id` = `votes`.`candidate`
+  INNER JOIN `candidates` ON `candidates`.`id` = `votes`.`candidate`
   WHERE `candidates`.`election` IN $elections
 )
 EOF
@@ -210,9 +208,8 @@ SELECT `elections`.`id` AS `id`,
   `writeins`.`name` AS `writein`,
   `writeins`.`rank` AS `rank`
 FROM `elections`
-  LEFT JOIN `writeins`
-    ON `elections`.`id` = `writeins`.`election`
-      AND `writeins`.`user` = :user
+LEFT JOIN `writeins` ON `elections`.`id` = `writeins`.`election`
+  AND `writeins`.`user` = :user
 WHERE `closed` IS NULL
 EOF
   );
@@ -231,9 +228,8 @@ SELECT `candidates`.`id` AS `id`,
   `candidates`.`name` AS `name`,
   `votes`.`rank` AS `rank`
 FROM `candidates`
-  LEFT JOIN `votes`
-    ON `candidates`.`id` = `votes`.`candidate`
-      AND `votes`.`user` = :user
+LEFT JOIN `votes` ON `candidates`.`id` = `votes`.`candidate`
+  AND `votes`.`user` = :user
 WHERE `candidates`.`election` = :election
 EOF
     );
