@@ -3,7 +3,7 @@ include(__DIR__ . '/../lib/include.php');
 include(__DIR__ . '/include.php');
 
 $pdo = rigger_init('rigger.db');
-$user = 'woot' //$_SERVER['PHP_AUTH_USER'];
+$user = $_SERVER['PHP_AUTH_USER'];
 ?><!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
