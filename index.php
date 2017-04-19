@@ -99,7 +99,7 @@ EOF
       ':user' => $user
     );
 
-    $pdo->prepare(<<<EOF
+    $result = $pdo->prepare(<<<EOF
 DELETE FROM `votes`
 WHERE `rowid` IN (
   SELECT `votes`.`rowid` FROM `votes`
@@ -110,16 +110,16 @@ WHERE `rowid` IN (
 EOF
       );
 
-    $pdo->execute($parameters);
+    $result->execute($parameters);
 
-    $pdo->exec(<<<EOF
+    $result = $pdo->prepare(<<<EOF
 DELETE FROM `writeins`
 WHERE `writeins`.`election` IN $elections
   AND `user` = :user
 EOF
       );
 
-    $pdo->execute($parameters);
+    $result->execute($parameters);
 
     if ($candidates) {
       $votes = $candidates;
