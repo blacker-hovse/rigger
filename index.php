@@ -95,25 +95,31 @@ EOF
   }
 
   if (!$error) {
-    $pdo->exec(<<<EOF
+    $parameters = array(
+      ':user' => $user
+    );
+
+    $pdo->prepare(<<<EOF
 DELETE FROM `votes`
 WHERE `rowid` IN (
   SELECT `votes`.`rowid` FROM `votes`
   INNER JOIN `candidates` ON `candidates`.`id` = `votes`.`candidate`
   WHERE `candidates`.`election` IN $elections
+    AND `user` = :user
 )
 EOF
       );
 
+    $pdo->execute($parameters);
+
     $pdo->exec(<<<EOF
 DELETE FROM `writeins`
 WHERE `writeins`.`election` IN $elections
+  AND `user` = :user
 EOF
       );
 
-    $parameters = array(
-      ':user' => $user
-    );
+    $pdo->execute($parameters);
 
     if ($candidates) {
       $votes = $candidates;
