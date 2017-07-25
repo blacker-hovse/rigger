@@ -3,6 +3,40 @@ function rigger_closed($closed) {
   return $closed ? 'Closed ' . $closed : 'Accepting responses';
 }
 
+function rigger_count($pdo, $election, $exclusions) {
+  $graph = array();
+  $result = $pdo->prepare(str_replace(':exclusions', rigger_stringify($pdo, $exclusions), file_get_contents('tally.sql')));
+
+  $result->execute(array(
+    ':id' => $election
+  ));
+
+  while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+    $c1 = (int) $row['c1'];
+    $c2 = (int) $row['c2'];
+
+    if (!array_key_exists($c1, $graph)) {
+      $graph[$c1] = array();
+    }
+
+    if (!array_key_exists($c2, $graph)) {
+      $graph[$c2] = array();
+    }
+
+    if (!rigger_dfs($graph, $c2, $c1, array())) {
+      $graph[$c1][$c2] = true;
+    }
+  }
+
+  $candidates = array_keys($graph);
+
+  foreach ($graph as $c1 => $c2) {
+    $candidates = array_diff($candidates, array_keys($c2));
+  }
+
+  return $candidates[0];
+}
+
 function rigger_dfs($graph, $v, $t, $discovered) {
   if ($v == $t) {
     return true;
@@ -34,6 +68,7 @@ function rigger_init($db) {
 CREATE TABLE `elections` (
   `id` integer PRIMARY KEY ASC,
   `name` varchar(255) NOT NULL,
+  `winner` int NOT NULL,
   `writeins` int NOT NULL,
   `created` datetime NOT NULL,
   `closed` datetime
@@ -75,6 +110,10 @@ EOF
 
 function rigger_intval($arr) {
   return "('" . implode("', '", array_map('intval', array_keys($arr))) . "')";
+}
+
+function rigger_stringify($pdo, $arr) {
+  return '(' . implode(', ', array_map(array($pdo, 'quote'), $arr)) . ')';
 }
 
 function rigger_subtitle() {
