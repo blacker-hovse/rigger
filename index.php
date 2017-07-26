@@ -83,13 +83,13 @@ EOF
       case 0:
         break;
       case 1:
-        $error = 'Poll <b>' . rigger_escape($closed[0]) . '</b> has already closed.';
+        $error = 'Poll <b>' . blacker_encode($closed[0]) . '</b> has already closed.';
         break;
       case 2:
-        $error = 'Polls <b>' . rigger_escape($closed[0]) . '</b> and <b>' . rigger_escape($closed[1]) . '</b> have already closed.';
+        $error = 'Polls <b>' . blacker_encode($closed[0]) . '</b> and <b>' . blacker_encode($closed[1]) . '</b> have already closed.';
         break;
       default:
-        $error = 'Polls <b>' . implode('</b>, <b>', array_map('rigger_escape', array_slice($closed, 0, -1))) . '</b>, and <b>' . $closed[count($closed) - 1] . '</b> have already closed.';
+        $error = 'Polls <b>' . implode('</b>, <b>', array_map('blacker_encode', array_slice($closed, 0, -1))) . '</b>, and <b>' . $closed[count($closed) - 1] . '</b> have already closed.';
         break;
     }
   }
@@ -227,7 +227,7 @@ $result->execute(array(
 $c = '';
 
 while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-  $title = rigger_escape($row['election']);
+  $title = blacker_encode($row['election']);
 
   $subresult = $pdo->prepare(<<<EOF
 SELECT `candidates`.`id` AS `id`,
@@ -255,7 +255,7 @@ EOF
 EOF;
 
   foreach ($subrows as $subrow) {
-    $name = rigger_escape($subrow['name']);
+    $name = blacker_encode($subrow['name']);
 
     if (array_key_exists($subrow['id'], $candidates)) {
       $rank = ' value="' . (int) $candidates[$subrow['id']] . '"';
@@ -278,10 +278,10 @@ EOF;
 
   if ($row['writeins']) {
     if (array_key_exists($row['id'], $writeins)) {
-      $name = ' value="' . rigger_escape($writeins[$row['id']][1]) . '"';
+      $name = ' value="' . blacker_encode($writeins[$row['id']][1]) . '"';
       $rank = ' value="' . (int) $writeins[$row['id']][0] . '"';
     } elseif ($row['rank']) {
-      $name = ' value="' . rigger_escape($row['writein']) . '"';
+      $name = ' value="' . blacker_encode($row['writein']) . '"';
       $rank = " value=\"$row[rank]\"";
     } else {
       $name = '';

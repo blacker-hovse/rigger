@@ -63,10 +63,6 @@ EOF
   return array_slice($graph, 0, $winners, true);
 }
 
-function rigger_escape($str) {
-  return htmlentities(str_replace(array("\r", "\n"), '', $str), NULL, 'UTF-8');
-}
-
 function rigger_init($db) {
   $create = !file_exists($db);
   $pdo = new PDO('sqlite:' . $db);
