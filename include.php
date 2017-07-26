@@ -34,7 +34,7 @@ EOF
   $wins = array_reverse($wins);
   arsort($graph);
 
-  if (count($graph) < $winners) {
+  if ($winners < count($graph)) {
     while ($graph[$winners - 1] == $graph[$winners]) {
       foreach ($wins as $win) {
         $c1 = (int) $win['c1'];
