@@ -35,15 +35,23 @@ EOF
   arsort($graph);
 
   if ($winners < count($graph)) {
-    while ($graph[$winners - 1] == $graph[$winners]) {
+    while (true) {
+      $keys = array_keys($graph);
+      $pre = $keys[$winners - 1];
+      $post = $keys[$winners];
+
+      if ($graph[$pre] != $graph[$post]) {
+        break;
+      }
+
       foreach ($wins as $win) {
         $c1 = (int) $win['c1'];
 
-        if ($c1 == $graph[$winners - 1]) {
-          $graph[$winners - 1]--;
+        if ($c1 == $graph[$pre]) {
+          $graph[$pre]--;
           break;
-        } elseif ($c1 == $graph[$winners]) {
-          $graph[$winners]--;
+        } elseif ($c1 == $graph[$post]) {
+          $graph[$post]--;
           break;
         }
       }
