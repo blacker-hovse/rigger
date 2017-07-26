@@ -83,7 +83,7 @@ EOF
       case 0:
         break;
       case 1:
-        $error = 'Poll <b>' . htmlentities($closed[0], NULL, 'UTF-8') . '</b> has already closed.';
+        $error = 'Poll <b>' . rigger_escape($closed[0]) . '</b> has already closed.';
         break;
       case 2:
         $error = 'Polls <b>' . rigger_escape($closed[0]) . '</b> and <b>' . rigger_escape($closed[1]) . '</b> have already closed.';
@@ -227,7 +227,7 @@ $result->execute(array(
 $c = '';
 
 while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-  $title = htmlentities($row['election'], NULL, 'UTF-8');
+  $title = rigger_escape($row['election']);
 
   $subresult = $pdo->prepare(<<<EOF
 SELECT `candidates`.`id` AS `id`,
@@ -255,7 +255,7 @@ EOF
 EOF;
 
   foreach ($subrows as $subrow) {
-    $name = htmlentities($subrow['name'], NULL, 'UTF-8');
+    $name = rigger_escape($subrow['name']);
 
     if (array_key_exists($subrow['id'], $candidates)) {
       $rank = ' value="' . (int) $candidates[$subrow['id']] . '"';
@@ -278,10 +278,10 @@ EOF;
 
   if ($row['writeins']) {
     if (array_key_exists($row['id'], $writeins)) {
-      $name = ' value="' . htmlentities($writeins[$row['id']][1], NULL, 'UTF-8') . '"';
+      $name = ' value="' . rigger_escape($writeins[$row['id']][1]) . '"';
       $rank = ' value="' . (int) $writeins[$row['id']][0] . '"';
     } elseif ($row['rank']) {
-      $name = ' value="' . htmlentities($row['writein'], NULL, 'UTF-8') . '"';
+      $name = ' value="' . rigger_escape($row['writein']) . '"';
       $rank = " value=\"$row[rank]\"";
     } else {
       $name = '';

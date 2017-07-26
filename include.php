@@ -82,7 +82,7 @@ function rigger_dfs($graph, $v, $t, $discovered) {
 }
 
 function rigger_escape($str) {
-  return htmlentities($str, NULL, 'UTF-8');
+  return htmlentities(str_replace(array("\r", "\n"), '', $str), NULL, 'UTF-8');
 }
 
 function rigger_init($db) {
