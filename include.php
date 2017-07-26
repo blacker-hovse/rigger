@@ -3,38 +3,56 @@ function rigger_closed($closed) {
   return $closed ? 'Closed ' . $closed : 'Accepting responses';
 }
 
-function rigger_count($pdo, $election, $exclusions) {
-  $graph = array();
-  $result = $pdo->prepare(str_replace(':exclusions', rigger_stringify($pdo, $exclusions), file_get_contents('tally.sql')));
+function rigger_count($pdo, $election) {
+  $result = $pdo->prepare(<<<EOF
+SELECT `winners`
+FROM `elections`
+WHERE `id` = :id
+EOF
+    );
+
+  $result->execute(array(
+    ':id' => $_GET['id']
+  ));
+
+  $winners = $result->fetch(PDO::FETCH_COLUMN);
+  $result = $pdo->prepare(file_get_contents('tally.sql'));
 
   $result->execute(array(
     ':id' => $election
   ));
 
-  while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-    $c1 = (int) $row['c1'];
-    $c2 = (int) $row['c2'];
+  $wins = $result->fetchAll(PDO::FETCH_ASSOC);
+  $wins = array_slice($wins, 0, count($wins) / 2);
+  $graph = array();
 
-    if (!array_key_exists($c1, $graph)) {
-      $graph[$c1] = array();
-    }
+  foreach ($wins as $win) {
+    $c1 = (int) $win['c1'];
+    $graph[$c1] = @$graph[$c1] + 1;
+  }
 
-    if (!array_key_exists($c2, $graph)) {
-      $graph[$c2] = array();
-    }
+  $wins = array_reverse($wins);
+  arsort($graph);
 
-    if (!rigger_dfs($graph, $c2, $c1, array())) {
-      $graph[$c1][$c2] = true;
+  if (count($graph) < $winners) {
+    while ($graph[$winners - 1] == $graph[$winners]) {
+      foreach ($wins as $win) {
+        $c1 = (int) $win['c1'];
+
+        if ($c1 == $graph[$winners - 1]) {
+          $graph[$winners - 1]--;
+          break;
+        } elseif ($c1 == $graph[$winners]) {
+          $graph[$winners]--;
+          break;
+        }
+      }
+
+      arsort($graph);
     }
   }
 
-  $candidates = array_keys($graph);
-
-  foreach ($graph as $c1 => $c2) {
-    $candidates = array_diff($candidates, array_keys($c2));
-  }
-
-  return $candidates[0];
+  return array_slice($graph, 0, $winners, true);
 }
 
 function rigger_dfs($graph, $v, $t, $discovered) {
@@ -110,10 +128,6 @@ EOF
 
 function rigger_intval($arr) {
   return "('" . implode("', '", array_map('intval', array_keys($arr))) . "')";
-}
-
-function rigger_stringify($pdo, $arr) {
-  return '(' . implode(', ', array_map(array($pdo, 'quote'), $arr)) . ')';
 }
 
 function rigger_subtitle() {
