@@ -63,24 +63,6 @@ EOF
   return array_slice($graph, 0, $winners, true);
 }
 
-function rigger_dfs($graph, $v, $t, $discovered) {
-  if ($v == $t) {
-    return true;
-  }
-
-  $discovered[$v] = true;
-
-  foreach ($graph[$v] as $w => $i) {
-    if (!array_key_exists($w, $discovered)) {
-      if (rigger_dfs($graph, $w, $t, $discovered)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 function rigger_escape($str) {
   return htmlentities(str_replace(array("\r", "\n"), '', $str), NULL, 'UTF-8');
 }
