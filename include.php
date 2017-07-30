@@ -1,4 +1,24 @@
 <?
+function rigger_ballot($pdo, $election, $user) {
+  $result = $pdo->prepare(<<<EOF
+SELECT `candidates`.`id` AS `id`,
+  `candidates`.`name` AS `name`,
+  `votes`.`rank` AS `rank`
+FROM `candidates`
+LEFT JOIN `votes` ON `candidates`.`id` = `votes`.`candidate`
+  AND `votes`.`user` = :user
+WHERE `candidates`.`election` = :election
+EOF
+    );
+
+  $result->execute(array(
+    ':election' => $election,
+    ':user' => $user
+  ));
+
+  return $result;
+}
+
 function rigger_closed($closed) {
   return $closed ? 'Closed ' . $closed : 'Accepting responses';
 }
@@ -16,7 +36,7 @@ EOF
   ));
 
   $winners = $result->fetch(PDO::FETCH_COLUMN);
-  $result = $pdo->prepare(file_get_contents('tally.sql'));
+  $result = $pdo->prepare(file_get_contents('count.sql'));
 
   $result->execute(array(
     ':id' => $election

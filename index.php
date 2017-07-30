@@ -228,24 +228,7 @@ $c = '';
 
 while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
   $title = blacker_encode($row['election']);
-
-  $subresult = $pdo->prepare(<<<EOF
-SELECT `candidates`.`id` AS `id`,
-  `candidates`.`name` AS `name`,
-  `votes`.`rank` AS `rank`
-FROM `candidates`
-LEFT JOIN `votes` ON `candidates`.`id` = `votes`.`candidate`
-  AND `votes`.`user` = :user
-WHERE `candidates`.`election` = :election
-EOF
-    );
-
-  $subresult->execute(array(
-    ':election' => $row['id'],
-    ':user' => $user
-  ));
-
-  $subrows = $subresult->fetchAll(PDO::FETCH_ASSOC);
+  $subrows = rigger_ballot($pdo, $row['id'], $user)->fetchAll(PDO::FETCH_ASSOC);
   $max = count($subrows) + 1;
 
   $c .= <<<EOF
