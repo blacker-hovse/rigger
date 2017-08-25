@@ -92,7 +92,7 @@ function rigger_init($db) {
 CREATE TABLE `elections` (
   `id` integer PRIMARY KEY ASC,
   `name` varchar(255) NOT NULL,
-  `winner` int NOT NULL,
+  `winners` int NOT NULL,
   `writeins` int NOT NULL,
   `created` datetime NOT NULL,
   `closed` datetime
