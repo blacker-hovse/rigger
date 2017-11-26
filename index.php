@@ -291,6 +291,7 @@ EOF;
 
 if ($c) {
   echo <<<EOF
+      <p>Rank the candidates in your preferred order with 1 being highest. You need not rank every candidate, and you may rank NO at any time. Votes are tallied using the <a href="https://en.wikipedia.org/wiki/Ranked_pairs">Ranked Pairs</a> method.</p>
       <form action="./" method="post">
 $c        <div class="form-control">
           <div class="input-group">
